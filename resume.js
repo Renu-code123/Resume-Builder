@@ -1,6 +1,7 @@
 // resume.js - Handles resume form inputs, live preview, and data binding
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
+
     const form = document.getElementById('resume-form');
     const skillsList = document.getElementById('skills-list');
     const addSkillBtn = document.getElementById('add-skill');
@@ -10,36 +11,50 @@ document.addEventListener('DOMContentLoaded', function() {
     const ctaCreateBtn = document.getElementById('cta-create');
     const ctaDemoBtn = document.getElementById('cta-demo');
 
+    // New elements for updated header
+    const authControls = document.getElementById('auth-controls');
+    const profileDropdown = document.getElementById('profile-dropdown');
+    const showAuthBtn = document.getElementById('show-auth');
+    const logoutDropdown = document.getElementById('logout-dropdown');
+    const dropdownUserName = document.getElementById('dropdown-user-name');
+
     // Initialize
     loadUserDataInternal();
-    
-    // Animate stats when they come into view
-    function animateStats() {
-        const statNumbers = document.querySelectorAll('.stat-number');
-        statNumbers.forEach(stat => {
-            const targetValue = stat.textContent;
-            
-            // Skip if already animated
-            if (stat.dataset.animated) return;
-            
-            // For demo purposes, we'll just add a simple animation effect
-            setTimeout(() => {
-                stat.style.fontWeight = '800';
-                stat.style.transform = 'scale(1.1)';
-                stat.style.transition = 'transform 0.3s ease, font-weight 0.3s ease';
-                stat.dataset.animated = 'true';
-            }, 300);
-        });
-    }
-    
-    // Call animateStats when page loads
-    if (document.querySelector('.hero-stats')) {
-        setTimeout(animateStats, 1000);
-    }
+    updateAuthUI();
 
-    // Two-way data binding for inputs
+    // Two-way data binding for inputs with validation
     if (form) {
-        form.addEventListener('input', function() {
+        form.addEventListener('input', function (e) {
+            // Real-time validation for specific fields
+            const fieldId = e.target.id;
+
+            if (fieldId === 'email') {
+                const email = e.target.value.trim();
+                if (email && !Validator.isValidEmail(email)) {
+                    ValidationUI.showError('email', 'Please enter a valid email address');
+                } else {
+                    ValidationUI.clearError('email');
+                }
+            }
+
+            if (fieldId === 'phone') {
+                const phone = e.target.value.trim();
+                if (phone && !Validator.isValidPhone(phone)) {
+                    ValidationUI.showError('phone', 'Please enter a valid phone number');
+                } else {
+                    ValidationUI.clearError('phone');
+                }
+            }
+
+            if (fieldId === 'linkedin') {
+                const url = e.target.value.trim();
+                if (url && !Validator.isValidURL(url)) {
+                    ValidationUI.showError('linkedin', 'Please enter a valid URL');
+                } else {
+                    ValidationUI.clearError('linkedin');
+                }
+            }
+
             updatePreview();
             saveResumeData();
         });
@@ -47,7 +62,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Handle skills
     if (addSkillBtn) {
-        addSkillBtn.addEventListener('click', function() {
+        addSkillBtn.addEventListener('click', function () {
             const skill = skillInput.value.trim();
             if (skill && !skills.includes(skill)) {
                 skills.push(skill);
@@ -60,7 +75,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     if (skillsList) {
-        skillsList.addEventListener('click', function(e) {
+        skillsList.addEventListener('click', function (e) {
             if (e.target.classList.contains('skill-tag')) {
                 const skill = e.target.textContent;
                 skills = skills.filter(s => s !== skill);
@@ -70,51 +85,160 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-    
-    if (downloadBtn) {
-        downloadBtn.addEventListener('click', function(){
-            window.print();
+
+    // Toggle dropdown menu
+    const profileBtn = document.querySelector('.profile-btn');
+    if (profileBtn) {
+        profileBtn.addEventListener('click', function (e) {
+            e.preventDefault();
+            const dropdown = document.getElementById('dropdown-menu');
+            dropdown.classList.toggle('show');
         });
     }
-    
+
+    // Close dropdown when clicking outside - Fixed null reference bug
+    document.addEventListener('click', function (event) {
+        const dropdown = document.getElementById('dropdown-menu');
+        const profileBtn = document.querySelector('.profile-btn');
+
+        if (dropdown && profileBtn) {
+            if (!profileBtn.contains(event.target) && !dropdown.contains(event.target)) {
+                dropdown.classList.remove('show');
+            }
+        }
+    });
+
+    // Conditionally show download button based on login status
+    function updateDownloadButtonVisibility() {
+        const currentUser = localStorage.getItem('currentUser');
+        if (currentUser) {
+            downloadBtn.classList.remove('hidden');
+        } else {
+            downloadBtn.classList.add('hidden');
+        }
+    }
+
+    // Update auth UI based on login status
+    function updateAuthUI() {
+        const currentUser = localStorage.getItem('currentUser');
+
+        if (currentUser) {
+            // User is logged in
+            authControls.classList.add('hidden');
+            profileDropdown.classList.remove('hidden');
+
+            // Set user name in dropdown
+            const userData = getUserData(currentUser);
+            const displayName = userData?.profile?.fullname || userData?.profile?.email || currentUser;
+            dropdownUserName.textContent = displayName;
+        } else {
+            // User is not logged in
+            authControls.classList.remove('hidden');
+            profileDropdown.classList.add('hidden');
+        }
+
+        updateDownloadButtonVisibility();
+    }
+
+    // Sign In button click handler
+    if (showAuthBtn) {
+        showAuthBtn.addEventListener('click', function () {
+            document.getElementById('auth-section').classList.remove('hidden');
+        });
+    }
+
+    // Logout from dropdown
+    if (logoutDropdown) {
+        logoutDropdown.addEventListener('click', function (e) {
+            e.preventDefault();
+            localStorage.removeItem('currentUser');
+            updateAuthUI();
+        });
+    }
+
+    // Check login status when page loads
+    updateAuthUI();
+
+    // PDF Export functionality
+    if (downloadBtn) {
+        downloadBtn.addEventListener('click', function () {
+            // Validate that resume has minimum required data
+            const nameValue = document.getElementById('name').value.trim();
+
+            if (!nameValue) {
+                ValidationUI.showToast('Please enter your name before downloading', 'error');
+                document.getElementById('name').focus();
+                return;
+            }
+
+            // Show loading toast
+            ValidationUI.showToast('Generating PDF...', 'info');
+
+            const element = document.getElementById('resume-preview');
+            const userName = nameValue.replace(/\s+/g, '_');
+            const filename = `${userName}_Resume.pdf`;
+
+            const opt = {
+                margin: [0.5, 0.5, 0.5, 0.5],
+                filename: filename,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: {
+                    scale: 2,
+                    useCORS: true,
+                    letterRendering: true
+                },
+                jsPDF: {
+                    unit: 'in',
+                    format: 'letter',
+                    orientation: 'portrait',
+                    compress: true
+                }
+            };
+
+            html2pdf().set(opt).from(element).save().then(() => {
+                ValidationUI.showToast('Resume downloaded successfully!', 'success');
+            }).catch((error) => {
+                console.error('PDF generation error:', error);
+                ValidationUI.showToast('Error generating PDF. Please try again.', 'error');
+            });
+        });
+    }
+
     // Hero section button event handlers
     if (ctaCreateBtn) {
-        ctaCreateBtn.addEventListener('click', function() {
-            document.getElementById('landing-section').classList.add('hidden');
-            document.getElementById('resume-section').classList.remove('hidden');
+        ctaCreateBtn.addEventListener('click', function () {
+            // Redirect to resume builder page instead of showing locally
+            window.location.href = './resume-builder.html';
         });
     }
-    
+
     if (ctaDemoBtn) {
-        ctaDemoBtn.addEventListener('click', function() {
-            // Show sample data in the form
-            document.getElementById('name').value = 'John Doe';
-            document.getElementById('email').value = 'john.doe@example.com';
-            document.getElementById('phone').value = '+1 (555) 123-4567';
-            document.getElementById('location').value = 'New York, NY';
-            document.getElementById('linkedin').value = 'linkedin.com/in/johndoe';
-            document.getElementById('summary').value = 'Experienced professional with expertise in software development and project management.';
-            document.getElementById('degree').value = 'Bachelor of Science in Computer Science';
-            document.getElementById('institution').value = 'University of Technology';
-            document.getElementById('year').value = '2020';
-            document.getElementById('cgpa').value = '3.8';
-            
-            // Add sample skills
-            skills = ['JavaScript', 'React', 'Node.js', 'Project Management'];
-            renderSkills();
-            
-            // Add sample experience
-            document.getElementById('exp-title').value = 'Software Engineer';
-            document.getElementById('exp-org').value = 'Tech Solutions Inc.';
-            document.getElementById('exp-duration').value = 'Jan 2021 - Present';
-            document.getElementById('exp-desc').value = 'Developed and maintained web applications using modern technologies.';
-            
-            document.getElementById('achievements').value = 'Certified AWS Developer, Led team of 5 developers on major project';
-            
-            // Update preview and show resume section
-            updatePreview();
-            document.getElementById('landing-section').classList.add('hidden');
-            document.getElementById('resume-section').classList.remove('hidden');
+        ctaDemoBtn.addEventListener('click', function () {
+            // Redirect to resume builder page with sample data in URL parameters
+            const sampleData = {
+                name: 'John Doe',
+                email: 'john.doe@example.com',
+                phone: '+1 (555) 123-4567',
+                location: 'New York, NY',
+                linkedin: 'linkedin.com/in/johndoe',
+                summary: 'Experienced professional with expertise in software development and project management.',
+                degree: 'Bachelor of Science in Computer Science',
+                institution: 'University of Technology',
+                year: '2020',
+                cgpa: '3.8',
+                skills: ['JavaScript', 'React', 'Node.js', 'Project Management'],
+                expTitle: 'Software Engineer',
+                expOrg: 'Tech Solutions Inc.',
+                expDuration: 'Jan 2021 - Present',
+                expDesc: 'Developed and maintained web applications using modern technologies.',
+                achievements: 'Certified AWS Developer, Led team of 5 developers on major project'
+            };
+
+            // Store sample data in localStorage
+            localStorage.setItem('sampleResumeData', JSON.stringify(sampleData));
+
+            // Redirect to resume builder page
+            window.location.href = './resume-builder.html';
         });
     }
 
@@ -126,7 +250,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function updatePreview() {
         const byId = id => document.getElementById(id);
-        const setText = (id, text, fallback='') => { const el = byId(id); if(el) el.textContent = text || fallback; };
+        const setText = (id, text, fallback = '') => { const el = byId(id); if (el) el.textContent = text || fallback; };
 
         setText('preview-name', byId('name') ? byId('name').value : '', 'Your Name');
         setText('preview-email', byId('email') ? byId('email').value : '');
@@ -144,7 +268,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const previewSkills = byId('preview-skills');
         if (previewSkills) previewSkills.innerHTML = skills.map(skill => `<span>${skill}</span>`).join('');
 
-        const previewExp = byId('preview-experience');
+        const previewExp = document.getElementById('preview-experience');
         if (previewExp) {
             const title = byId('exp-title') ? byId('exp-title').value : '';
             const org = byId('exp-org') ? byId('exp-org').value : '';
@@ -181,16 +305,35 @@ document.addEventListener('DOMContentLoaded', function() {
         saveUserData(currentUser, userData);
     }
 
-    function loadUserDataInternal(){
+    function loadUserDataInternal() {
         // storage.loadUserData will populate basic fields, then we sync skills and preview
         loadUserData();
         const currentUser = localStorage.getItem('currentUser');
-        if(!currentUser) return;
+        if (!currentUser) return;
         const userData = getUserData(currentUser) || {};
-        if(userData.resume && userData.resume.skills){
+        if (userData.resume && userData.resume.skills) {
             skills = userData.resume.skills.slice();
         }
         renderSkills();
         updatePreview();
+        updateAuthUI(); // Update UI after loading user data
     }
+});
+
+// Scroll To Top Button
+const scrollToTopBtn = document.getElementById("scrollToTopBtn");
+
+window.addEventListener("scroll", () => {
+    if (window.scrollY > 300) {
+        scrollToTopBtn.classList.add("show");
+    } else {
+        scrollToTopBtn.classList.remove("show");
+    }
+});
+
+scrollToTopBtn.addEventListener("click", () => {
+    window.scrollTo({
+        top: 0,
+        behavior: "smooth",
+    });
 });
