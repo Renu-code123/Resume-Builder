@@ -4,6 +4,20 @@ document.addEventListener('DOMContentLoaded', function(){
     
     function applyTheme(t){
         document.documentElement.setAttribute('data-theme', t);
+        
+        // Update theme toggle icons
+        if(btn){
+            const sunIcon = btn.querySelector('.icon-sun');
+            const moonIcon = btn.querySelector('.icon-moon');
+            
+            if(t === 'dark'){
+                if(sunIcon) sunIcon.style.display = 'none';
+                if(moonIcon) moonIcon.style.display = 'block';
+            } else {
+                if(sunIcon) sunIcon.style.display = 'block';
+                if(moonIcon) moonIcon.style.display = 'none';
+            }
+        }
     }
 
     // Load theme preference on page load
@@ -13,6 +27,11 @@ document.addEventListener('DOMContentLoaded', function(){
         if(userData && userData.theme){
             applyTheme(userData.theme);
         }
+    } else {
+        // Check for system preference if no user is logged in
+        const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const savedTheme = localStorage.getItem('theme') || (prefersDark ? 'dark' : 'light');
+        applyTheme(savedTheme);
     }
 
     if(!btn) return;
@@ -23,10 +42,13 @@ document.addEventListener('DOMContentLoaded', function(){
         applyTheme(next);
 
         const currentUser = localStorage.getItem('currentUser');
-        if(currentUser){
+        if(currentUser && typeof getUserData === 'function' && typeof saveUserData === 'function'){
             const userData = getUserData(currentUser) || {};
             userData.theme = next;
             saveUserData(currentUser, userData);
+        } else {
+            // Save theme preference to localStorage for non-logged-in users
+            localStorage.setItem('theme', next);
         }
     });
 });
