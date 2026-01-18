@@ -1136,7 +1136,10 @@ button {
     width: 170px;
     margin: 0 auto;
     text-align: center;
-    padding-top: 30px;
+}
+
+.basic-bt{
+    padding-top: 25px;
 }
 
 .readmore_bt a {
