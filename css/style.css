@@ -2496,6 +2496,19 @@ textarea#comment::placeholder {
     transform: scale(1.05);
     transition: all 0.3s ease;
 }
+.brand-logo {
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.brand-logo img {
+  height: 48px;
+  width: auto;
+}
+.app-logo {
+  height: 40px;
+}
+
 
 /* ===== ENHANCED HOME PAGE STYLES ===== */
 
