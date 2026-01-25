@@ -137,6 +137,28 @@
                </a>
 
                <button
+                  type="button"
+                  id="themeToggle"
+                  style="
+                     background: none;
+                     border: 1px solid #ddd;
+                     border-radius: 50%;
+                     width: 40px;
+                     height: 40px;
+                     cursor: pointer;
+                     margin-right: 15px;
+                     display: flex;
+                     align-items: center;
+                     justify-content: center;
+                     transition: all 0.2s ease;
+                     font-size: 20px;
+                  "
+                  aria-label="Toggle dark mode"
+               >
+                  🌙
+               </button>
+
+               <button
                   class="navbar-toggler"
                   type="button"
                   id="navToggle"
@@ -164,43 +186,6 @@
                   </ul>
 
                   <form class="form-inline my-2 my-lg-0">
-                     <button
-                        type="button"
-                        id="theme-toggle"
-                        style="
-                           background: none;
-                           border: 1px solid #ddd;
-                           border-radius: 50%;
-                           width: 40px;
-                           height: 40px;
-                           cursor: pointer;
-                           margin-right: 15px;
-                           display: flex;
-                           align-items: center;
-                           justify-content: center;
-                           transition: all 0.2s ease;
-                        "
-                     >
-                        <span class="theme-sun" style="display: block;">☀️</span>
-                        <span class="theme-moon" style="display: none;">🌙</span>
-                     </button>
-
-                     <div id="auth-controls">
-                        <ul>
-                           <li><a href="./sign-up.html" id="show-register-top">Sign Up</a></li>
-                           <li><a href="./sign-in.html" id="show-login-top">Sign In</a></li>
-                           <!-- Dark mode toggle -->
-                           <li class="theme-toggle">
-                           <button id="themeToggle" aria-label="Toggle dark mode">
-                              🌙
-                           </button>
-                           </li>
-                           <script src="dark.js"></script>
-                           <!-- <li><a href="sign-up.html" id="show-register-top">Sign Up</a></li>
-                           <li><a href="sign-in.html" id="show-login-top">Sign In</a></li> -->
-                        </ul>
-                     </div>
-
                      <div id="profile-dropdown" class="profile-dropdown hidden">
                         <button class="profile-btn">
                            <i class="fa fa-user" aria-hidden="true"></i>
@@ -225,7 +210,7 @@
             </nav>
          </div>
          <!-- JS for hamburger -->
-
+         <script src="dark.js"></script>
          <script>
             const navToggle = document.getElementById("navToggle");
             const navMenu = document.getElementById("navbarSupportedContent");
